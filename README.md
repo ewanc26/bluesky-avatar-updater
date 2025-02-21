@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains a Python script intended to update your Bluesky avatar automatically based on the current hour. The script utilises environment variables for configuration and reads a JSON file of blob CIDs to determine the appropriate avatar for each hour. Please note that the implementation is not yet fully operational, as several issues remain to be resolved.
+This repository contains a Python script intended to update your Bluesky avatar automatically based on the current hour. The script utilises environment variables for configuration and reads a JSON file of blob CIDs to determine the appropriate avatar for each hour. Please note that the implementation is not yet fully operational, as several issues remain to be resolved. This script was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
 
 ## Prerequisites
 
