@@ -42,7 +42,7 @@ Before running the script, ensure you have the following:
      ```env
      ENDPOINT=your_endpoint
      HANDLE=your_handle
-     PASSWORD=your_password
+     PASSWORD=your_password (app passwords are better)
      DID=your_did
      ```
 
