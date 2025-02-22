@@ -16,6 +16,7 @@ Before running the script, ensure you have the following:
   - `atproto`
   - `requests`
   - `python-magic`
+  - `python-crontab`
 - A valid Bluesky account with the necessary API credentials.
 
 ## Installation
@@ -94,7 +95,7 @@ Execution logs will be displayed directly in the console.
 
 ## Automating with Cron (Linux)
 
-To run the script automatically every hour, a cron job is set up within the script. If you need to manually verify it, run:
+The script will automatically set up a cron job to run every hour. If you need to manually verify it, run:
 
 ```bash
 crontab -l
@@ -106,6 +107,24 @@ If you need to remove or modify the cron job, use:
 crontab -e
 ```
 
+### Manually Set Up Cron Job
+
+If you wish to manually set up the cron job instead of relying on the script, follow these steps:
+
+1. Open the crontab editor:
+
+   ```bash
+   crontab -e
+   ```
+
+2. Add the following line to run the script every hour at the top of the hour:
+
+   ```bash
+   0 * * * * /path/to/your/venv/bin/python3 /path/to/bluesky-avatar-updater/src/main.py
+   ```
+
+Replace `/path/to/your/venv/bin/python3` with the path to your virtual environment's Python interpreter and `/path/to/bluesky-avatar-updater/src/main.py` with the full path to the `main.py` script.
+
 ## Troubleshooting
 
 - **Environment variables not loading?** Ensure the `.env` file is correctly placed in `../assets/`.
@@ -116,6 +135,7 @@ crontab -e
   ```
 
 - **Endpoint not responding?** Verify that the Bluesky API endpoint is correct and accessible.
+- **Cron job not running?** Verify that the cron job was properly set up using `crontab -l` or set it up manually.
 
 ## License
 
