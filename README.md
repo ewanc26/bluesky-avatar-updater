@@ -10,7 +10,7 @@ The script has been tested and is fully functional. It was developed on macOS bu
 
 Before running the script, ensure you have the following:
 
-- Python 3.6 or later installed.
+- Python 3.6 or later installed. If using Ubuntu, run `sudo apt update && sudo apt install -y python3 python3-pip python3-dev`
 - The required Python packages (automatically installed if missing):
   - `python-dotenv`
   - `atproto`
@@ -27,15 +27,32 @@ Before running the script, ensure you have the following:
    cd bluesky-avatar-updater
    ```
 
-2. **Create a virtual environment and install dependencies:**
+2. **Ensure the required package is installed (if necessary):**
+
+   Before creating the virtual environment, make sure that the `python3-venv` package is installed (this is necessary on Debian/Ubuntu systems to create virtual environments).
+
+   ```bash
+   sudo apt install python3.10-venv  # Adjust the version if necessary (e.g., python3.9-venv)
+   ```
+
+3. **Create a virtual environment and install dependencies:**
+
+   Now, create a new virtual environment and activate it. This isolates the package dependencies for your project.
 
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+   ```
+
+4. **Install dependencies within the virtual environment:**
+
+   With the virtual environment activated, install the required packages listed in the `requirements.txt` file:
+
+   ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configure environment variables:**
+5. **Configure environment variables:**
    - Place your `.env` file in the `../assets` directory relative to the script.
    - The `.env` file should contain the following entries:
 
@@ -46,7 +63,7 @@ Before running the script, ensure you have the following:
      DID=your_did
      ```
 
-4. **Prepare the JSON file:**
+6. **Prepare the JSON file:**
    - Ensure that a `cids.json` file is located in the `../assets` directory. This file should map each hour (in two-digit format) to a corresponding blob CID. Example:
 
      ```json
