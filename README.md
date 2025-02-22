@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains a Python script designed to automatically update your Bluesky avatar based on the current hour. The script leverages environment variables for configuration and reads a JSON file of blob CIDs to determine the appropriate avatar. This script was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
+This repository contains a Python script designed to automatically update your Bluesky avatar based on the current hour. The script uses environment variables for configuration and reads a JSON file of blob CIDs to determine the appropriate avatar. This script was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
 
 The script has been tested and is fully functional. It was developed on macOS but is intended for deployment on Linux.
 
@@ -42,7 +42,7 @@ Before running the script, ensure you have the following:
      ```env
      ENDPOINT=your_endpoint
      HANDLE=your_handle
-     PASSWORD=your_password (app passwords are better)
+     PASSWORD=your_password (app passwords are recommended)
      DID=your_did
      ```
 
@@ -73,7 +73,7 @@ The script will:
 - Authenticate using the AT Protocol.
 - Update the Bluesky avatar accordingly.
 
-Execution logs will be recorded in `logs/avatar_update.log` for your review.
+Execution logs will be displayed directly in the console.
 
 ## Automating with Cron (Linux)
 
@@ -100,6 +100,6 @@ crontab -e
 
 - **Endpoint not responding?** Verify that the Bluesky API endpoint is correct and accessible.
 
-## Licence
+## License
 
-This project is released under the MIT Licence. See the [LICENSE](./LICENSE) file for full details.
+This project is released under the MIT License. See the [LICENSE](./LICENSE) file for full details.
