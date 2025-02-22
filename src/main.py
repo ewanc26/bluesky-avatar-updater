@@ -7,6 +7,13 @@ from datetime import datetime
 from dotenv import load_dotenv
 from atproto import Client, models
 from atproto.exceptions import BadRequestError
+import sys
+
+if not hasattr(sys, 'real_prefix') and not (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+    print("Error: This script must be run inside a virtual environment.")
+    sys.exit(1)
+else:
+    print("Virtual environment detected.")
 
 # Define the paths
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
