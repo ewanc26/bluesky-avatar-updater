@@ -9,6 +9,7 @@ from atproto import Client, models
 from atproto.exceptions import BadRequestError
 import sys
 from crontab import CronTab
+from logging.handlers import RotatingFileHandler
 
 # Ensure the script is run inside a virtual environment
 if not hasattr(sys, 'real_prefix') and not (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
@@ -24,11 +25,27 @@ ENV_PATH = os.path.join(ASSETS_DIR, ".env")
 JSON_PATH = os.path.join(ASSETS_DIR, "cids.json")
 SCRIPT_PATH = os.path.abspath(__file__)
 
-# Configure basic console logging
+# Define the log file directory and log file path
+log_dir = os.path.expanduser("~/logs/bluesky-avatar-updater")
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# Log file with datetime stamp, but will be rotated
+log_file_path = os.path.join(log_dir, f"avatar_update_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+
+# Configure logging to both console and file with rotation
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)  # Show only INFO and higher levels on console
+
+# Create a rotating file handler (max file size 10 MB, backup 5 old log files)
+file_handler = RotatingFileHandler(
+    log_file_path, maxBytes=10 * 1024 * 1024, backupCount=5
+)
+file_handler.setLevel(logging.INFO)  # Save all logs to file
+
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
 
 # Root logger setup
 logger = logging.getLogger()
@@ -38,8 +55,9 @@ logger.setLevel(logging.INFO)  # Set the root logger level to INFO
 for handler in logger.handlers[:]:
     logger.removeHandler(handler)
 
-# Add the custom console handler
+# Add the custom handlers
 logger.addHandler(console_handler)
+logger.addHandler(file_handler)
 
 # Suppress httpx logging (this stops httpx internal logs)
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Suppress INFO and DEBUG logs from httpx

@@ -91,7 +91,7 @@ The script will:
 - Authenticate using the AT Protocol.
 - Update the Bluesky avatar accordingly.
 
-Execution logs will be displayed directly in the console.
+Execution logs will be displayed directly in the console, and a log file will be created in the `~/logs/bluesky-avatar-updater` directory. The log file will rotate when it reaches 10 MB, keeping up to 5 backup log files, each named with a timestamp for each execution.
 
 ## Automating with Cron (Linux)
 
@@ -120,10 +120,10 @@ If you wish to manually set up the cron job instead of relying on the script, fo
 2. Add the following line to run the script every hour at the top of the hour:
 
    ```bash
-   0 * * * * /path/to/your/venv/bin/python3 /path/to/bluesky-avatar-updater/src/main.py
+   0 * * * * /path/to/your/.venv/bin/python3 /path/to/bluesky-avatar-updater/src/main.py
    ```
 
-Replace `/path/to/your/venv/bin/python3` with the path to your virtual environment's Python interpreter and `/path/to/bluesky-avatar-updater/src/main.py` with the full path to the `main.py` script.
+Replace `/path/to/your/.venv/bin/python3` with the path to your virtual environment's Python interpreter and `/path/to/bluesky-avatar-updater/src/main.py` with the full path to the `main.py` script.
 
 ## Troubleshooting
 
