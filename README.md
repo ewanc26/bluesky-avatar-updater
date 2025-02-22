@@ -91,7 +91,7 @@ The script will:
 - Authenticate using the AT Protocol.
 - Update the Bluesky avatar accordingly.
 
-Execution logs will be displayed directly in the console, and a log file will be created in the `~/logs/bluesky-avatar-updater` directory. The log file will rotate when it reaches 10 MB, keeping up to 5 backup log files, each named with a timestamp for each execution.
+Execution logs will be displayed directly in the console, and a log file will be created in the `./logs/` directory. The log file will rotate when it reaches 10 MB, keeping up to 5 backup log files, each named with a timestamp for each execution.
 
 ## Automating with Cron (Linux)
 

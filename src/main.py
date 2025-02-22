@@ -26,7 +26,7 @@ JSON_PATH = os.path.join(ASSETS_DIR, "cids.json")
 SCRIPT_PATH = os.path.abspath(__file__)
 
 # Define the log file directory and log file path
-log_dir = os.path.expanduser("~/logs/bluesky-avatar-updater")
+log_dir = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
