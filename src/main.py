@@ -115,7 +115,7 @@ def validate_environment_variables():
 
 def setup_cron_job():
     # Get the path to the virtual environment's python interpreter
-    venv_python = os.path.join(BASE_DIR, "venv", "bin", "python3")  # Update this if your venv is elsewhere
+    venv_python = os.path.join(BASE_DIR, ".venv", "bin", "python3")  # Update this if your venv is elsewhere
 
     # Check if the cron job already exists
     cron = CronTab(user=True)
