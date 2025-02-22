@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 import subprocess
@@ -7,6 +8,7 @@ import requests
 import magic
 from datetime import datetime
 from dotenv import load_dotenv
+from logging.handlers import RotatingFileHandler
 from atproto import Client, models
 from atproto.exceptions import BadRequestError
 
@@ -23,20 +25,24 @@ REQ_PATH = os.path.abspath(os.path.join(BASE_DIR, "../requirements.txt"))  # /re
 ASSETS_DIR = os.path.join(BASE_DIR, "../assets")
 ENV_PATH = os.path.join(ASSETS_DIR, ".env")
 JSON_PATH = os.path.join(ASSETS_DIR, "cids.json")
-LOG_PATH = os.path.join(BASE_DIR, "avatar_update.log")
+LOG_PATH = os.path.join(BASE_DIR, "logs", "avatar_update.log")
 
-# Configure logging
-logging.basicConfig(
-    filename=LOG_PATH,
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+# Ensure necessary directories exist
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+os.makedirs(ASSETS_DIR, exist_ok=True)
+
+# Configure logging with log rotation (5MB per file, keeps last 5 logs)
+log_handler = RotatingFileHandler(LOG_PATH, maxBytes=5 * 1024 * 1024, backupCount=5)
+log_handler.setLevel(logging.DEBUG)
+log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+log_handler.setFormatter(log_formatter)
+
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-console_handler.setFormatter(formatter)
-logging.getLogger().addHandler(console_handler)
+console_handler.setFormatter(log_formatter)
 
+logging.basicConfig(level=logging.DEBUG, handlers=[log_handler, console_handler])
+logging.info("Starting script with log rotation enabled.")
 
 def install_and_rerun():
     """Install missing packages from requirements.txt and re-run the script."""
@@ -53,8 +59,7 @@ def install_and_rerun():
         logging.error(f"requirements.txt not found at {REQ_PATH}, cannot install missing packages.")
         sys.exit(1)
 
-
-# Try to import external packages; if any are missing, install them.
+# Check for required packages and install if missing
 try:
     import requests
     import magic
@@ -65,7 +70,6 @@ except ImportError as e:
     logging.error(f"Missing package(s): {e}")
     install_and_rerun()
 
-
 def ensure_https(url):
     """Ensure the URL starts with https://"""
     if not url.startswith("http://") and not url.startswith("https://"):
@@ -73,7 +77,6 @@ def ensure_https(url):
     if url.startswith("http://"):
         return "https://" + url[7:]
     return url
-
 
 def is_endpoint_alive(url):
     """Check if the endpoint is alive by making a health check request."""
@@ -91,7 +94,6 @@ def is_endpoint_alive(url):
         logging.error(f"Health check failed for {health_url}: {e}")
         return False
 
-
 def fetch_blob(did, cid, endpoint):
     """Fetch blob data from the given endpoint."""
     url = f"{endpoint}/xrpc/com.atproto.sync.getBlob?did={did}&cid={cid}"
@@ -104,7 +106,6 @@ def fetch_blob(did, cid, endpoint):
     except requests.RequestException as e:
         logging.error(f"Failed to fetch blob {cid} for DID {did}: {e}")
         return None
-
 
 def get_blob_metadata(cid, did, endpoint):
     """Retrieve metadata for a given blob CID."""
@@ -126,7 +127,6 @@ def get_blob_metadata(cid, did, endpoint):
         "size": size,
     }
 
-
 def setup_cron_job():
     """Set up a cron job to run the script hourly."""
     cron_job_command = f"0 * * * * {sys.executable} {os.path.abspath(__file__)} >> {LOG_PATH} 2>&1"
@@ -146,16 +146,14 @@ def setup_cron_job():
     except Exception as e:
         logging.error(f"Failed to set up cron job: {e}")
 
-
 def main():
     logging.info("Starting avatar update script...")
 
-    if os.path.exists(ENV_PATH):
-        load_dotenv(ENV_PATH)
-        logging.info("Loaded .env file successfully.")
-    else:
+    if not os.path.exists(ENV_PATH):
         logging.error(f"Missing .env file at {ENV_PATH}")
         return
+    load_dotenv(ENV_PATH)
+    logging.info("Loaded .env file successfully.")
 
     endpoint = os.getenv("ENDPOINT")
     handle = os.getenv("HANDLE")
@@ -169,6 +167,10 @@ def main():
     endpoint = ensure_https(endpoint)
     if not is_endpoint_alive(endpoint):
         logging.error(f"Endpoint {endpoint} is not responding.")
+        return
+
+    if not os.path.exists(JSON_PATH) or os.path.getsize(JSON_PATH) == 0:
+        logging.error(f"Error: {JSON_PATH} is missing or empty.")
         return
 
     try:
@@ -216,8 +218,6 @@ def main():
     except Exception as e:
         logging.error(f"Failed to update profile record: {e}")
 
-
 if __name__ == "__main__":
     setup_cron_job()
     main()
-    

@@ -2,18 +2,20 @@
 
 ## Overview
 
-This repository contains a Python script intended to update your Bluesky avatar automatically based on the current hour. The script utilises environment variables for configuration and reads a JSON file of blob CIDs to determine the appropriate avatar for each hour. Please note that the implementation is not yet fully operational, as several issues remain to be resolved. This script was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
+This repository contains a Python script designed to automatically update your Bluesky avatar based on the current hour. The script leverages environment variables for configuration and reads a JSON file of blob CIDs to determine the appropriate avatar. This script was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
+
+The script has been tested and is fully functional. It was developed on macOS but is intended for deployment on Linux.
 
 ## Prerequisites
 
 Before running the script, ensure you have the following:
 
 - Python 3.6 or later installed.
-
-- The required Python packages:
+- The required Python packages (automatically installed if missing):
   - `python-dotenv`
   - `atproto`
-  - Standard libraries such as `os`, `json`, `logging`, and `datetime`
+  - `requests`
+  - `python-magic`
 - A valid Bluesky account with the necessary API credentials.
 
 ## Installation
@@ -41,10 +43,19 @@ Before running the script, ensure you have the following:
      ENDPOINT=your_endpoint
      HANDLE=your_handle
      PASSWORD=your_password
+     DID=your_did
      ```
 
 4. **Prepare the JSON file:**
-   - Ensure that a `cids.json` file is located in the `../assets` directory. This file should map each hour (in two-digit format) to a corresponding blob CID.
+   - Ensure that a `cids.json` file is located in the `../assets` directory. This file should map each hour (in two-digit format) to a corresponding blob CID. Example:
+
+     ```json
+     {
+       "00": "cid_for_midnight",
+       "01": "cid_for_1am",
+       "02": "cid_for_2am"
+     }
+     ```
 
 ## Usage
 
@@ -56,20 +67,38 @@ python -u ./src/main.py
 
 The script will:
 
-- Load the environment configuration from `./assets/.env`.
-- Read the blob CIDs from `./assets/cids.json`.
+- Load the environment configuration from `../assets/.env`.
+- Read the blob CIDs from `../assets/cids.json`.
 - Determine the current hour and select the appropriate blob CID.
-- Attempt to authenticate and update the avatar using the AT Protocol.
+- Authenticate using the AT Protocol.
+- Update the Bluesky avatar accordingly.
 
-Execution logs will be recorded in `avatar_update.log` for your review.
+Execution logs will be recorded in `logs/avatar_update.log` for your review.
 
-## Known Issues
+## Automating with Cron (Linux)
 
-At present, the script isn’t fully working. We’ve noticed an error when updating the profile—specifically, the `put_record()` method is missing a required parameter. There have also been occasional authentication hiccoughs, which might be due to configuration issues or [API](https://atproto.blue) quirks.
+To run the script automatically every hour, a cron job is set up within the script. If you need to manually verify it, run:
 
-If you’re keen to help sort these out or have ideas for improvements, please open a Pull Request. Your contributions are very welcome!
+```bash
+crontab -l
+```
 
----
+If you need to remove or modify the cron job, use:
+
+```bash
+crontab -e
+```
+
+## Troubleshooting
+
+- **Environment variables not loading?** Ensure the `.env` file is correctly placed in `../assets/`.
+- **Script exits with missing dependencies?** The script will attempt to install missing packages, but you can manually install them using:
+  
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+- **Endpoint not responding?** Verify that the Bluesky API endpoint is correct and accessible.
 
 ## Licence
 
