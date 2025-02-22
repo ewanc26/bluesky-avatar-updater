@@ -1,2 +1,5 @@
 python-dotenv
 atproto
+requests
+python-magic
+python-crontab
