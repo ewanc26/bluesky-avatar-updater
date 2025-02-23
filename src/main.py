@@ -170,7 +170,7 @@ def setup_cron_job():
 
     if not job_exists:
         # Set up the cron job to run every hour (top of the hour)
-        cron_command = f"{venv_python} {SCRIPT_PATH} # Avatar update script"
+        cron_command = f"{venv_python} {SCRIPT_PATH}"
         job = cron.new(command=cron_command, comment="Avatar update script")
         job.minute.on(0)  # Run at the start of every hour
         cron.write()
