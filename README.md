@@ -91,7 +91,7 @@ The script will:
 - Authenticate using the AT Protocol.
 - Update the Bluesky avatar accordingly.
 
-Execution logs will be displayed directly in the console, and a log file will be created in the `./logs/` directory. The log file will rotate when it reaches 10 MB, keeping up to 5 backup log files, each named with a timestamp for each execution.
+Execution logs will be displayed directly in the console, and a log file will be created in the `./logs/` directory. The log file will rotate every 14 days, keeping up to 5 backup log files. Logs older than 30 days will be automatically deleted.
 
 ## Automating with Cron (Linux)
 
@@ -136,6 +136,7 @@ Replace `/path/to/your/.venv/bin/python3` with the path to your virtual environm
 
 - **Endpoint not responding?** Verify that the Bluesky API endpoint is correct and accessible.
 - **Cron job not running?** Verify that the cron job was properly set up using `crontab -l` or set it up manually.
+- **Old logs not deleting?** Ensure the script has the necessary permissions to delete files in the `./logs/` directory.
 
 ## License
 

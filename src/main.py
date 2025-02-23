@@ -9,7 +9,9 @@ from atproto import Client, models
 from atproto.exceptions import BadRequestError
 import sys
 from crontab import CronTab
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
+import glob
+import time
 
 # Ensure the script is run inside a virtual environment
 if not hasattr(sys, 'real_prefix') and not (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
@@ -30,16 +32,30 @@ log_dir = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-# Log file with datetime stamp, but will be rotated
-log_file_path = os.path.join(log_dir, f"avatar_update_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+def cleanup_old_logs(log_directory, days=30):
+    """Deletes log files older than the specified number of days."""
+    cutoff = time.time() - (days * 86400)  # Convert days to seconds
+    for log_file in glob.glob(os.path.join(log_directory, "avatar_update*.log")):
+        if os.path.isfile(log_file) and os.path.getmtime(log_file) < cutoff:
+            os.remove(log_file)
+            print(f"Deleted old log: {log_file}")
 
-# Configure logging to both console and file with rotation
+# Cleanup logs older than 30 days before setting up new logging
+cleanup_old_logs(log_dir, days=30)
+
+# Use a fixed log file name for the current log; TimedRotatingFileHandler will manage rotations.
+log_file_path = os.path.join(log_dir, "avatar_update.log")
+
+# Configure logging to both console and file with bi-weekly rotation
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)  # Show only INFO and higher levels on console
 
-# Create a rotating file handler (max file size 10 MB, backup 5 old log files)
-file_handler = RotatingFileHandler(
-    log_file_path, maxBytes=10 * 1024 * 1024, backupCount=5
+# Create a timed rotating file handler (rotate every 14 days, keep up to 5 backups)
+file_handler = TimedRotatingFileHandler(
+    log_file_path,
+    when="D",        # 'D' stands for days
+    interval=14,     # Rotate every 14 days
+    backupCount=5
 )
 file_handler.setLevel(logging.INFO)  # Save all logs to file
 
