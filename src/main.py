@@ -35,7 +35,7 @@ if not os.path.exists(log_dir):
 def cleanup_old_logs(log_directory, days=30):
     """Deletes log files older than the specified number of days."""
     cutoff = time.time() - (days * 86400)  # Convert days to seconds
-    for log_file in glob.glob(os.path.join(log_directory, "avatar_update*.log")):
+    for log_file in glob.glob(os.path.join(log_directory, "update.log")):
         if os.path.isfile(log_file) and os.path.getmtime(log_file) < cutoff:
             os.remove(log_file)
             print(f"Deleted old log: {log_file}")
@@ -44,7 +44,7 @@ def cleanup_old_logs(log_directory, days=30):
 cleanup_old_logs(log_dir, days=30)
 
 # Use a fixed log file name for the current log; TimedRotatingFileHandler will manage rotations.
-log_file_path = os.path.join(log_dir, "avatar_update.log")
+log_file_path = os.path.join(log_dir, "update.log")
 
 # Configure logging to both console and file with bi-weekly rotation
 console_handler = logging.StreamHandler()
@@ -77,9 +77,6 @@ logger.addHandler(file_handler)
 
 # Suppress httpx logging (this stops httpx internal logs)
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Suppress INFO and DEBUG logs from httpx
-
-# Log the start of the script
-logger.info("Avatar update script started.")
 
 def ensure_https(url):
     """Ensure the URL starts with https://."""
@@ -145,6 +142,7 @@ def validate_environment_variables():
     handle = os.getenv("HANDLE")
     password = os.getenv("PASSWORD")
     did = os.getenv("DID")
+    update_banner = os.getenv("UPDATE_BANNER", "false").lower() == "true"
 
     if not all([endpoint, handle, password, did]):
         logger.error("Missing environment variables. Ensure ENDPOINT, HANDLE, PASSWORD, and DID are set in .env file.")
@@ -153,7 +151,8 @@ def validate_environment_variables():
         "endpoint": endpoint,
         "handle": handle,
         "password": password,
-        "did": did
+        "did": did,
+        "update_banner": update_banner
     }
 
 def setup_cron_job():
@@ -180,11 +179,16 @@ def setup_cron_job():
         logger.info("Cron job already exists.")
 
 def main():
-    """Main function to run the avatar update process."""
+    """Main function to run the avatar and banner update process."""
     # Set up the cron job (only once)
-    setup_cron_job()
+    try:
+        setup_cron_job()
+    except Exception as e:
+        logger.error(f"Error setting cron job: {e}")
+        pass
 
-    logger.info("Starting avatar update process...")
+    logger.info("Script started.")
+    logger.info("Starting update process...")
 
     # Load environment variables from the .env file
     if os.path.exists(ENV_PATH):
@@ -213,16 +217,28 @@ def main():
         logger.error(f"Error loading cids.json from {JSON_PATH}: {e}")
         return
 
-    # Determine the blob CID for the current hour
+    # Determine the blob CIDs for the current hour from the modified structure
     current_hour = datetime.now().strftime("%H")
     logger.info(f"Current hour: {current_hour}")
-    
-    new_blob_cid = blob_dict.get(current_hour)
-    if not new_blob_cid:
-        logger.warning(f"No blob CID found for hour {current_hour}")
+
+    current_entry = blob_dict.get(current_hour)
+    if not current_entry:
+        logger.warning(f"No entry found for hour {current_hour} in cids.json")
         return
 
-    logger.info(f"Selected blob CID: {new_blob_cid}")
+    new_avatar_cid = current_entry.get("avatar")
+    new_banner_cid = current_entry.get("banner") if env_vars["update_banner"] else None
+
+    if not new_avatar_cid:
+        logger.warning(f"No avatar CID found for hour {current_hour}")
+        return
+
+    logger.info(f"Selected avatar CID: {new_avatar_cid}")
+    if env_vars["update_banner"]:
+        if new_banner_cid:
+            logger.info(f"Selected banner CID: {new_banner_cid}")
+        else:
+            logger.warning(f"UPDATE_BANNER is enabled, but no banner CID found for hour {current_hour}")
 
     # Authenticate with the endpoint
     client = Client(endpoint)
@@ -233,30 +249,37 @@ def main():
         logger.error(f"Authentication failed: {e}")
         return
 
-    # Fetch the current profile and update it with the new avatar
+    # Fetch the current profile and update it with the new avatar (and optionally banner)
     try:
         current_profile_record = client.app.bsky.actor.profile.get(
             client.me.did, "self"
         )
         current_profile = current_profile_record.value
         swap_record_cid = current_profile_record.cid
-        logger.info(f"Current profile record fetched successfully.")
+        logger.info("Current profile record fetched successfully.")
     except BadRequestError:
         current_profile = swap_record_cid = None
-        logger.warning(f"Failed to fetch current profile record.")
+        logger.warning("Failed to fetch current profile record.")
 
-    old_description = old_display_name = None
-    if current_profile:
-        old_description = current_profile.description
-        old_display_name = current_profile.display_name
+    old_description = current_profile.description if current_profile else None
+    old_display_name = current_profile.display_name if current_profile else None
+    old_banner = current_profile.banner if current_profile else None
 
-    blob_metadata = get_blob_metadata(new_blob_cid, env_vars["did"], endpoint)
-
-    if blob_metadata is None:
-        logger.error(f"Could not retrieve metadata for blob CID: {new_blob_cid}")
+    avatar_metadata = get_blob_metadata(new_avatar_cid, env_vars["did"], endpoint)
+    if avatar_metadata is None:
+        logger.error(f"Could not retrieve metadata for avatar blob CID: {new_avatar_cid}")
         return
 
-    # Update the profile with the new avatar
+    banner_metadata = None
+    if env_vars["update_banner"] and new_banner_cid:
+        banner_metadata = get_blob_metadata(new_banner_cid, env_vars["did"], endpoint)
+        if banner_metadata is None:
+            logger.warning(f"Could not retrieve metadata for banner blob CID: {new_banner_cid}")
+            banner_metadata = old_banner
+    else:
+        banner_metadata = old_banner
+
+    # Update the profile with the new avatar and optionally the new banner
     try:
         client.com.atproto.repo.put_record(
             models.ComAtprotoRepoPutRecord.Data(
@@ -265,14 +288,17 @@ def main():
                 rkey="self",
                 swap_record=swap_record_cid,
                 record=models.AppBskyActorProfile.Record(
-                    avatar=blob_metadata,
-                    banner=current_profile.banner if current_profile else None,
+                    avatar=avatar_metadata,
+                    banner=banner_metadata,
                     description=old_description,
                     display_name=old_display_name,
                 ),
             )
         )
-        logger.info(f"Avatar updated successfully with CID: {new_blob_cid}")
+        if env_vars["update_banner"] and new_banner_cid:
+            logger.info(f"Profile updated successfully with avatar CID {new_avatar_cid} and banner CID {new_banner_cid}")
+        else:
+            logger.info(f"Profile updated successfully with avatar CID: {new_avatar_cid}")
     except Exception as e:
         logger.error(f"Failed to update profile record: {e}")
 
