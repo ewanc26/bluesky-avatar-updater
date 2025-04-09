@@ -1,5 +1,7 @@
 # Bluesky Avatar Updater
 
+***This repository is available on [GitHub](https://github.com/ewanc26/bluesky-avatar-updater) and [Tangled](https://tangled.sh/@ewancroft.uk/bluesky-avatar-updater). GitHub is the primary version, and the Tangled version is a mirror.***
+
 ## Overview
 
 This repository contains a Python script that automatically updates your Bluesky avatar (and, optionally, your banner) based on the current hour. The script utilises environment variables for configuration and reads a JSON file mapping blob CIDs to specific hours. In addition to updating your avatar, the script performs several supportive functions including a health check of the API endpoint, comprehensive logging (both to console and to a rotating file system that deletes logs older than 30 days), and the automatic setup of a cron job to ensure regular updates. This project was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
