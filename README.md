@@ -1,6 +1,6 @@
 # Bluesky Avatar Updater
 
-***This repository is available on [GitHub](https://github.com/ewanc26/bluesky-avatar-updater) and [Tangled](https://tangled.sh/@ewancroft.uk/bluesky-avatar-updater). GitHub is the primary version, and the Tangled version is a mirror.***
+***This repository is available on [GitHub](https://github.com/ewanc26/bluesky-avatar-updater) and [Tangled](https://tangled.sh/did:plc:ofrbh253gwicbkc5nktqepol/bluesky-avatar-updater). GitHub is the primary version, and the Tangled version is a mirror.***
 
 ## Overview
 
