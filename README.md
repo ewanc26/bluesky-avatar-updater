@@ -138,3 +138,7 @@ If you prefer to manually set up or modify the cron job, follow these steps:
 ## License
 
 This project is released under the MIT License. Please refer to the [LICENSE](./LICENSE) file for full details.
+
+## ☕ Support
+
+If you found this useful, consider [buying me a ko-fi](https://ko-fi.com/ewancroft)!
