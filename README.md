@@ -1,32 +1,24 @@
 # Bluesky Avatar Updater
 
-**_This repository is available on [GitHub](https://github.com/ewanc26/bluesky-avatar-updater) and [Tangled](https://tangled.sh/did:plc:ofrbh253gwicbkc5nktqepol/bluesky-avatar-updater). GitHub is the primary version, and the Tangled version is a mirror._**
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
 
-## Overview
+A Rust tool to automatically rotate your Bluesky profile avatar and banner every hour.
 
-This repository contains a Python script that updates a Bluesky profile avatar, and optionally a banner, based on the current hour. It looks up blob CIDs in `assets/cids.json`, fetches the blobs from the configured endpoint, and updates the profile record through the AT Protocol.
+## Features
 
-The script also performs a health check against the endpoint, writes logs to `logs/update.log`, rotates logs every 14 days with up to 5 backups, removes old logs older than 30 days at startup, and installs an hourly cron job so the update runs automatically.
-
-This project was inspired by [@dame.is](https://bsky.app/profile/dame.is)'s blog post ['How I made an automated dynamic avatar for my Bluesky profile'](https://dame.is/blog/how-i-made-an-automated-dynamic-avatar-for-my-bluesky-profile).
-
-> 🧶 Also available on [Tangled](https://tangled.org/ewancroft.uk/bluesky-avatar-updater)
+- **Automated Rotation**: Automatically updates your profile assets every hour.
+- **Environment Support**: Loads configuration from `.env` files.
+- **Logging**: Robust file logging with 14-day rotation.
+- **Cron Integration**: Self-installs as an hourly cron job for persistent updates.
+- **Asset Mapping**: Supports detailed hourly CID mapping for both avatar and banner.
 
 ## Requirements
 
-- Python 3.6 or later
-- A virtual environment
-- Python packages from `requirements.txt`
-- A valid Bluesky account with app password access
-- A working AT Protocol endpoint that serves the blobs referenced in `cids.json`
+To run this project, you will need the following:
 
-Install the Python dependencies with:
+- Rust 1.85+ (Cargo)
 
-```bash
-pip install -r requirements.txt
-```
-
-## Setup
+## Installation
 
 1. Clone the repository:
 
@@ -35,20 +27,19 @@ pip install -r requirements.txt
    cd bluesky-avatar-updater
    ```
 
-2. Create and activate a virtual environment:
+2. Build the project:
 
    ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
+   cargo build --release
    ```
 
-3. Create `assets/.env` with:
+3. Create a `.env` file in the `assets/` directory (or the root) and add your environment variables:
 
-   ```env
-   ENDPOINT=your_endpoint
-   HANDLE=your_handle
+   ```plaintext
+   ENDPOINT=https://bsky.social
+   HANDLE=your_handle.bsky.social
    PASSWORD=your_app_password
-   DID=your_did
+   DID=did:plc:your_did
    UPDATE_BANNER=false
    ```
 
@@ -66,38 +57,32 @@ pip install -r requirements.txt
 
 ## Usage
 
-Run the updater from the repository root while the virtual environment is active:
+Run the updater from the repository root:
 
 ```bash
-python -u ./src/main.py
+cargo run --release
 ```
 
 On start-up, the script will:
 
-1. Verify that it is running inside a virtual environment
-2. Load `assets/.env`
-3. Confirm the endpoint is healthy
-4. Read the CID mapping from `assets/cids.json`
-5. Select the avatar CID for the current hour
-6. Log in to Bluesky and update the profile record
-7. Ensure an hourly cron job exists for future runs
+1. Load configuration and environment variables.
+2. Confirm the endpoint is healthy.
+3. Read the CID mapping from `assets/cids.json`.
+4. Select the avatar/banner CID for the current hour.
+5. Log in to Bluesky and update the profile record.
+6. Ensure an hourly cron job exists for future runs.
 
-## Notes
+## File Structure
 
-- `UPDATE_BANNER=true` enables banner updates when a banner CID is present for the current hour.
-- The endpoint value is normalised to HTTPS if necessary.
-- The script expects the endpoint to support `/_health` and `com.atproto.sync.getBlob`.
-
-## Troubleshooting
-
-- If the script exits immediately, double-check that the virtual environment is active.
-- If authentication fails, confirm the handle and app password are correct.
-- If blob fetching fails, make sure the endpoint can access the DID/CID pair in `cids.json`.
-- If cron does not install, verify that `python-crontab` is available in the virtual environment.
+- `src/main.rs`: Main orchestration.
+- `src/bsky.rs`: Bluesky API and blob handling.
+- `src/cron.rs`: Cron job management.
+- `src/utils.rs`: Utility functions and environment validation.
+- `assets/cids.json`: Mapping of hours to avatar and banner CIDs.
 
 ## License
 
-This project is released under the MIT License. Please refer to the [LICENSE](./LICENSE) file for full details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## ☕ Support
 
