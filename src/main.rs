@@ -1,3 +1,9 @@
+//! Hourly Bluesky avatar and banner rotator.
+//!
+//! Reads a CID-per-hour mapping from `assets/cids.json`, picks the current hour's
+//! entry, and writes it to the user's Bluesky profile.  Designed to be run once
+//! and self-install as a cron job so subsequent rotations happen unattended.
+
 mod bsky;
 mod cron;
 mod utils;
@@ -16,15 +22,20 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use atrium_api::app::bsky::actor::profile::{Record, RecordData};
 use atrium_api::types::{BlobRef, TypedBlobRef, Unknown};
 
+// ─── Data Structures ─────────────────────────────────
+
 #[derive(Serialize, Deserialize, Debug)]
 struct HourEntry {
     avatar: String,
     banner: Option<String>,
 }
 
+// ─── Entry Point ─────────────────────────────────────
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Define the paths
+    // ── Setup ────────────────────────────────────────
+
     let base_dir = env::current_dir()?;
     let assets_dir = base_dir.join("assets");
     let json_path = assets_dir.join("cids.json");
@@ -34,7 +45,8 @@ async fn main() -> Result<()> {
         fs::create_dir_all(&log_dir)?;
     }
 
-    // Set up tracing
+    // ── Tracing ──────────────────────────────────────
+    // File logs roll daily; stdout keeps a live view for terminal runs.
     let file_appender = tracing_appender::rolling::daily(&log_dir, "update.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
@@ -48,13 +60,14 @@ async fn main() -> Result<()> {
         .init();
 
     info!("Script started.");
-    
-    // Setup cron job
+
+    // ── Environment & Health ─────────────────────────
+    // Self-install the cron entry so the binary only needs one manual launch.
     cron::setup_cron_job();
 
-    // Load environment variables
     dotenv().ok();
-    // Also try loading from assets/.env if it exists (per original script)
+    // The original Python script checked assets/.env separately — preserve that
+    // path for backwards-compatibility with existing deployments.
     let env_path = assets_dir.join(".env");
     if env_path.exists() {
         dotenvy::from_path(&env_path).ok();
@@ -72,7 +85,8 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    // Load CID mapping
+    // ── CID Lookup ──────────────────────────────────
+
     let blob_dict: HashMap<String, HourEntry> = if json_path.exists() {
         let content = fs::read_to_string(&json_path)?;
         serde_json::from_str(&content).context("Failed to parse cids.json")?
@@ -81,6 +95,7 @@ async fn main() -> Result<()> {
         return Ok(());
     };
 
+    // Pick the CID whose key matches the current hour (00-23).
     let current_hour = Local::now().format("%H").to_string();
     info!("Current hour: {}", current_hour);
 
@@ -102,7 +117,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Authenticate
+    // ── Auth ─────────────────────────────────────────
+
     let agent = BskyAgent::builder()
         .config(Config {
             endpoint: endpoint.clone(),
@@ -114,7 +130,8 @@ async fn main() -> Result<()> {
     agent.login(env_vars.handle.clone(), env_vars.password.clone()).await?;
     info!("Authentication successful.");
 
-    // Fetch current profile
+    // ── Read Current Profile ─────────────────────────
+
     let me = agent.api.com.atproto.repo.get_record(
         atrium_api::com::atproto::repo::get_record::ParametersData {
             collection: "app.bsky.actor.profile".parse().map_err(|e| anyhow!("{:?}", e))?,
@@ -124,6 +141,8 @@ async fn main() -> Result<()> {
         }.into()
     ).await;
 
+    // Keep the returned CID for an optimistic-concurrency swap on put_record,
+    // so we don't silently clobber another writer's changes.
     let (mut current_record_data, swap_record_cid) = match me {
         Ok(output) => {
             let record = serde_json::from_value::<Record>(serde_json::to_value(&output.data.value)?)?;
@@ -131,7 +150,8 @@ async fn main() -> Result<()> {
         }
         Err(e) => {
             warn!("Failed to fetch current profile record: {:?}", e);
-            // Default empty record data
+            // No existing record — start from scratch.  The SDK still lets us
+            // put a record with all-None fields.
             (RecordData {
                 avatar: None,
                 banner: None,
@@ -147,7 +167,8 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Update avatar
+    // ── Update Avatar ────────────────────────────────
+
     match bsky::get_blob_metadata(new_avatar_cid, &env_vars.did, &endpoint).await {
         Ok(blob) => {
             current_record_data.avatar = Some(BlobRef::Typed(TypedBlobRef::Blob(blob)));
@@ -158,7 +179,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Update banner if needed
+    // ── Update Banner ────────────────────────────────
+    // Banner is optional per-hour; only attempt the swap when the env flag is
+    // on AND the current hour maps to a banner CID.
+
     if env_vars.update_banner {
         if let Some(bcid) = new_banner_cid {
             match bsky::get_blob_metadata(bcid, &env_vars.did, &endpoint).await {
@@ -172,7 +196,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Put record back
+    // ── Write Profile ────────────────────────────────
+
     agent.api.com.atproto.repo.put_record(
         atrium_api::com::atproto::repo::put_record::InputData {
             collection: "app.bsky.actor.profile".parse().map_err(|e| anyhow!("{:?}", e))?,

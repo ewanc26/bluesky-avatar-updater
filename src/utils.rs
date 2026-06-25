@@ -1,7 +1,14 @@
+//! URL normalisation, endpoint health checks, and environment variable
+//! validation.
+
 use reqwest::Client;
 use tracing::{info, warn, error};
 use std::env;
 
+/// Upgrade a URL to HTTPS if it isn't already.
+///
+/// Strips an explicit `http://` prefix to avoid mixed-content issues with the
+/// AT Protocol, and prepends `https://` to bare hostnames.
 pub fn ensure_https(url: &str) -> String {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return format!("https://{}", url);
@@ -12,6 +19,10 @@ pub fn ensure_https(url: &str) -> String {
     url.to_string()
 }
 
+/// Check whether a PDS endpoint is reachable via its health endpoint.
+///
+/// Hitting `/xrpc/_health` is lighter than attempting a full login — we bail
+/// early when the server is down rather than burning time on retry logic.
 pub async fn is_endpoint_alive(url: &str) -> bool {
     let health_url = format!("{}/xrpc/_health", url.trim_end_matches('/'));
     let client = Client::new();
@@ -32,6 +43,7 @@ pub async fn is_endpoint_alive(url: &str) -> bool {
     }
 }
 
+/// Runtime environment variables the binary needs to operate.
 pub struct EnvVars {
     pub endpoint: String,
     pub handle: String,
@@ -40,6 +52,10 @@ pub struct EnvVars {
     pub update_banner: bool,
 }
 
+/// Read and validate required environment variables.
+///
+/// Returns `None` (and logs an error) when `ENDPOINT`, `HANDLE`, `PASSWORD`,
+/// or `DID` is missing.  `UPDATE_BANNER` defaults to `false` and is optional.
 pub fn validate_environment_variables() -> Option<EnvVars> {
     let endpoint = env::var("ENDPOINT").ok();
     let handle = env::var("HANDLE").ok();

@@ -2,21 +2,33 @@
 name = "bluesky-avatar-updater"
 version = "0.1.0"
 edition = "2021"
+description = "Hourly Bluesky avatar/banner rotator — reads CID-per-hour mapping and writes to profile."
 
 [dependencies]
+# Async runtime
 tokio = { version = "1.37.0", features = ["full"] }
+# HTTP client for blob fetching and health checks
 reqwest = { version = "0.12.4", features = ["json"] }
+# Serialisation for cids.json and AT Protocol types
 serde = { version = "1.0.201", features = ["derive"] }
 serde_json = "1.0.117"
+# Error handling
 anyhow = "1.0.86"
+# Structured logging
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-appender = "0.2.3"
+# .env file loading
 dotenvy = "0.15.7"
+# Bluesky AT Protocol SDK
 bsky-sdk = "0.1.24"
 atrium-api = "0.25.8"
+# Date/time for hour selection
 chrono = "0.4.38"
+# MIME-type inference from blob headers
 infer = "0.19.0"
+# CID parsing
+cid = "0.11.3"
+# Miscellaneous
 url = "2.5.0"
 bytes = "1.6.0"
-cid = "0.11.3"

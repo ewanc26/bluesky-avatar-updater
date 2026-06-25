@@ -1,3 +1,4 @@
+# Prettier formatting hook for JSON, YAML, Markdown, CSS, and JS/TS files.
 repos:
   - repo: local
     hooks:

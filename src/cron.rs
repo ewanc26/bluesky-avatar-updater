@@ -1,8 +1,18 @@
+//! Self-installing cron job management.
+//!
+//! On first run the binary adds itself to the user's crontab so the avatar
+//! rotation continues every hour without further manual launches.  Idempotent
+//! — repeated runs detect the existing entry and skip.
+
 use std::process::Command;
 use std::env;
 use std::io::Write;
 use tracing::{info, error};
 
+/// Add this binary to crontab as an hourly job if it isn't already present.
+///
+/// Reads the current crontab, checks whether the binary's path appears anywhere
+/// in it, and appends `0 * * * * /path/to/binary` if not found.
 pub fn setup_cron_job() {
     let current_exe = match env::current_exe() {
         Ok(path) => path,
@@ -12,12 +22,13 @@ pub fn setup_cron_job() {
         }
     };
     let current_exe_str = current_exe.to_str().expect("Failed to convert path to string");
-    
-    // Command to check if cron job exists
+
+    // ── Check for existing entry ─────────────────────
+
     let output = Command::new("crontab")
         .arg("-l")
         .output();
-    
+
     let cron_list = match output {
         Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).to_string(),
         _ => String::new(),
@@ -27,6 +38,11 @@ pub fn setup_cron_job() {
         info!("Cron job already exists.");
         return;
     }
+
+    // ── Append to crontab ────────────────────────────
+    // Pipe the full crontab (existing lines + new job) back through `crontab -`
+    // which replaces the whole table.  This preserves any pre-existing jobs the
+    // user may have.
 
     let new_job = format!("0 * * * * {}", current_exe_str);
     let mut new_cron = cron_list;

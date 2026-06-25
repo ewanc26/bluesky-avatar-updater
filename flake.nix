@@ -1,3 +1,8 @@
+# flake.nix — Nix dev shell for bluesky-avatar-updater.
+#
+# Provides Python 3 tooling (the original prototype was a Python script) for
+# any remaining scripting or testing alongside the Rust binary.
+
 {
   description = "bluesky-avatar-updater — hourly avatar/banner updater for Bluesky";
 
@@ -11,6 +16,8 @@
       devShells = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system}; in
         {
+          # Python-heavy dev shell: the Rust build toolchain is expected to come
+          # from the user's environment (rustup) rather than nixpkgs.
           default = pkgs.mkShell {
             packages = with pkgs; [
               python3
@@ -27,6 +34,7 @@
         }
       );
 
+      # Code formatting via nixfmt
       formatter = forAllSystems (pkgs: pkgs.nixfmt-rfc-style);
     };
 }
