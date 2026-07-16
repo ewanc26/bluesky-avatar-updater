@@ -1,22 +1,22 @@
 # AGENTS.md
 
-Guidance for agents working on the Rust Bluesky avatar/banner scheduler.
+Guidance for agents working on the unmaintained Rust Bluesky avatar/banner updater.
 
-## Architecture
+## Current implementation
 
-- `src/` handles configuration, hourly CID selection, blob fetching/validation, profile reads/writes, scheduling, cron installation, and rotating logs.
-- `assets/cids.json` is operator-provided state and must remain compatible with the documented hour-to-avatar/banner mapping.
-- `.env` holds PDS credentials and options; never commit or print it.
+- `main.rs` resolves `assets/`, `logs/`, and config from the process current directory, installs cron before validating config, uses the host's local hour (`chrono::Local`) to select a zero-padded `cids.json` key, performs one update, and exits.
+- `bsky.rs` downloads the full existing blob through `com.atproto.sync.getBlob` to infer MIME type and size; it does not upload image bytes.
+- `cron.rs` preserves the current crontab and appends `0 * * * * <current executable>` when that path is absent. Daily tracing files are created, but code does not implement the README's claimed 14-day retention.
+- Root `.env` loads first and `assets/.env` may supplement it. `ENDPOINT`, `HANDLE`, `PASSWORD`, and `DID` are required; `UPDATE_BANNER` is true only for case-insensitive `true`.
 
 ## Invariants
 
-- Use UTC/hour semantics consistently and update at most once for a given scheduled interval.
-- Read the existing profile and preserve fields not owned by this tool. Avatar-only operation must not erase the banner or other profile data.
-- Validate CIDs, MIME types, download bounds, and blob responses before updating the record.
-- Use optimistic record revision/swap behavior when available so concurrent profile edits are not overwritten.
-- Network and scheduler failures must be logged safely and retried with bounds; never busy-loop.
-- Cron installation must be idempotent and must not delete unrelated entries.
+- Preserve local-time semantics unless a UTC migration updates deployed mappings and docs.
+- Bound blob downloads and validate CID/MIME/status before writing.
+- A successful profile read preserves all decoded fields and supplies its CID as `swap_record`. Any read error currently falls back to a blank profile and can erase metadata; distinguish not-found from transient/auth/parse failures before retaining that behavior.
+- Cron setup must preserve unrelated jobs, quote paths safely, and avoid installing a broken job before config validation.
+- Never commit `.env`, `assets/cids.json` with private deployment data, or logs.
 
 ## Validation
 
-Run `cargo fmt --check`, `cargo clippy --all-targets --all-features`, and `cargo test`, then `cargo build --release`. Test hour rollover, missing mapping, banner-disabled mode, malformed config, fetch failure, invalid media, concurrent profile change, and graceful shutdown with mocks. Live writes require a dedicated test account and explicit care.
+Run `cargo fmt --check`, `cargo clippy --all-targets --all-features`, `cargo test`, and `cargo build --release`. Use controlled working directories with mocked HTTP/agent/crontab behavior to cover env precedence, local-hour lookup, missing/malformed maps, endpoint health, blob timeout/status/type/size, banner modes, profile-read failure classes, swap conflicts, crontab preservation, and executable paths with spaces. Live writes require a dedicated account.
