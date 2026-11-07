@@ -16,4 +16,4 @@
 
 ## Recent direction
 
-Recent commits: Sync AGENTS.md from zincfox; Sync AGENTS.md from zincfox; Sync CONTRIBUTING.md from zincfox; Sync CONTRIBUTING.md from zincfox; Remove old bug_report.md template
+Recent commits: Remove old bug_report.md template

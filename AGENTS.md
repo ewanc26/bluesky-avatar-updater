@@ -20,4 +20,4 @@ Guidance for AI coding agents working in **bluesky-avatar-updater**.
 
 ## Recent history
 
-Sync AGENTS.md from zincfox; Sync AGENTS.md from zincfox; Sync CONTRIBUTING.md from zincfox; Sync CONTRIBUTING.md from zincfox; Remove old bug_report.md template
+Remove old bug_report.md template
