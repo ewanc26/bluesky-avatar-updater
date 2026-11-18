@@ -4,8 +4,6 @@ Guidance for AI coding agents working in **bluesky-avatar-updater**.
 
 ## Project overview
 
-
-
 - Language: Rust
 - Default branch: main
 
