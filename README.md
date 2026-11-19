@@ -1,5 +1,7 @@
 # Bluesky Avatar Updater
 
+[![Licence](https://img.shields.io/github/license/ewanc26/bluesky-avatar-updater?label=licence)](LICENSE)
+[![Sponsor](https://img.shields.io/github/sponsors/ewanc26?logo=githubsponsors&logoColor=white&label=sponsors)](https://github.com/sponsors/ewanc26)
 [![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
 
 Rotates your Bluesky avatar and banner every hour. Written in Rust.
@@ -64,6 +66,10 @@ On startup it:
 - `src/cron.rs` — Cron job management
 - `src/utils.rs` — Utilities and env validation
 - `assets/cids.json` — Hour-to-CID mappings
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and the checks required before opening a pull request.
 
 ## Licence
 
