@@ -1,6 +1,8 @@
 [package]
 name = "bluesky-avatar-updater"
+authors = ["Ewan Croft (ewanc26)"]
 version = "0.1.0"
+license = "MIT"
 edition = "2021"
 description = "Hourly Bluesky avatar/banner rotator — reads CID-per-hour mapping and writes to profile."
 
