@@ -2,8 +2,8 @@
 //! validation.
 
 use reqwest::Client;
-use tracing::{info, warn, error};
 use std::env;
+use tracing::{error, info, warn};
 
 /// Upgrade a URL to HTTPS if it isn't already.
 ///
@@ -26,13 +26,22 @@ pub fn ensure_https(url: &str) -> String {
 pub async fn is_endpoint_alive(url: &str) -> bool {
     let health_url = format!("{}/xrpc/_health", url.trim_end_matches('/'));
     let client = Client::new();
-    match client.get(&health_url).timeout(std::time::Duration::from_secs(5)).send().await {
+    match client
+        .get(&health_url)
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+    {
         Ok(response) => {
             if response.status().is_success() {
                 info!("Endpoint {} is alive and healthy.", url);
                 true
             } else {
-                warn!("Endpoint {} is not responding correctly: {}", url, response.status());
+                warn!(
+                    "Endpoint {} is not responding correctly: {}",
+                    url,
+                    response.status()
+                );
                 false
             }
         }
@@ -61,9 +70,14 @@ pub fn validate_environment_variables() -> Option<EnvVars> {
     let handle = env::var("HANDLE").ok();
     let password = env::var("PASSWORD").ok();
     let did = env::var("DID").ok();
-    let update_banner = env::var("UPDATE_BANNER").unwrap_or_else(|_| "false".to_string()).to_lowercase() == "true";
+    let update_banner = env::var("UPDATE_BANNER")
+        .unwrap_or_else(|_| "false".to_string())
+        .to_lowercase()
+        == "true";
 
-    if let (Some(endpoint), Some(handle), Some(password), Some(did)) = (endpoint, handle, password, did) {
+    if let (Some(endpoint), Some(handle), Some(password), Some(did)) =
+        (endpoint, handle, password, did)
+    {
         Some(EnvVars {
             endpoint,
             handle,
@@ -72,7 +86,9 @@ pub fn validate_environment_variables() -> Option<EnvVars> {
             update_banner,
         })
     } else {
-        error!("Missing environment variables. Ensure ENDPOINT, HANDLE, PASSWORD, and DID are set.");
+        error!(
+            "Missing environment variables. Ensure ENDPOINT, HANDLE, PASSWORD, and DID are set."
+        );
         None
     }
 }

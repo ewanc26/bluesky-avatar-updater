@@ -4,10 +4,10 @@
 //! rotation continues every hour without further manual launches.  Idempotent
 //! — repeated runs detect the existing entry and skip.
 
-use std::process::Command;
 use std::env;
 use std::io::Write;
-use tracing::{info, error};
+use std::process::Command;
+use tracing::{error, info};
 
 /// Add this binary to crontab as an hourly job if it isn't already present.
 ///
@@ -21,13 +21,13 @@ pub fn setup_cron_job() {
             return;
         }
     };
-    let current_exe_str = current_exe.to_str().expect("Failed to convert path to string");
+    let current_exe_str = current_exe
+        .to_str()
+        .expect("Failed to convert path to string");
 
     // ── Check for existing entry ─────────────────────
 
-    let output = Command::new("crontab")
-        .arg("-l")
-        .output();
+    let output = Command::new("crontab").arg("-l").output();
 
     let cron_list = match output {
         Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).to_string(),
