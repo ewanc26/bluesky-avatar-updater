@@ -8,19 +8,19 @@ mod bsky;
 mod cron;
 mod utils;
 
-use anyhow::{Result, Context, anyhow};
-use bsky_sdk::BskyAgent;
+use anyhow::{anyhow, Context, Result};
+use atrium_api::app::bsky::actor::profile::{Record, RecordData};
+use atrium_api::types::{BlobRef, TypedBlobRef, Unknown};
 use bsky_sdk::agent::config::Config;
+use bsky_sdk::BskyAgent;
 use chrono::Local;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-use atrium_api::app::bsky::actor::profile::{Record, RecordData};
-use atrium_api::types::{BlobRef, TypedBlobRef, Unknown};
 
 // ─── Data Structures ─────────────────────────────────
 
@@ -50,8 +50,7 @@ async fn main() -> Result<()> {
     let file_appender = tracing_appender::rolling::daily(&log_dir, "update.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     tracing_subscriber::registry()
         .with(filter)
@@ -127,43 +126,62 @@ async fn main() -> Result<()> {
         .build()
         .await?;
 
-    agent.login(env_vars.handle.clone(), env_vars.password.clone()).await?;
+    agent
+        .login(env_vars.handle.clone(), env_vars.password.clone())
+        .await?;
     info!("Authentication successful.");
 
     // ── Read Current Profile ─────────────────────────
 
-    let me = agent.api.com.atproto.repo.get_record(
-        atrium_api::com::atproto::repo::get_record::ParametersData {
-            collection: "app.bsky.actor.profile".parse().map_err(|e| anyhow!("{:?}", e))?,
-            repo: env_vars.did.clone().parse().map_err(|e| anyhow!("{:?}", e))?,
-            rkey: "self".parse().map_err(|e| anyhow!("{:?}", e))?,
-            cid: None,
-        }.into()
-    ).await;
+    let me = agent
+        .api
+        .com
+        .atproto
+        .repo
+        .get_record(
+            atrium_api::com::atproto::repo::get_record::ParametersData {
+                collection: "app.bsky.actor.profile"
+                    .parse()
+                    .map_err(|e| anyhow!("{:?}", e))?,
+                repo: env_vars
+                    .did
+                    .clone()
+                    .parse()
+                    .map_err(|e| anyhow!("{:?}", e))?,
+                rkey: "self".parse().map_err(|e| anyhow!("{:?}", e))?,
+                cid: None,
+            }
+            .into(),
+        )
+        .await;
 
     // Keep the returned CID for an optimistic-concurrency swap on put_record,
     // so we don't silently clobber another writer's changes.
     let (mut current_record_data, swap_record_cid) = match me {
         Ok(output) => {
-            let record = serde_json::from_value::<Record>(serde_json::to_value(&output.data.value)?)?;
+            let record =
+                serde_json::from_value::<Record>(serde_json::to_value(&output.data.value)?)?;
             (record.data, output.data.cid)
         }
         Err(e) => {
             warn!("Failed to fetch current profile record: {:?}", e);
             // No existing record — start from scratch.  The SDK still lets us
             // put a record with all-None fields.
-            (RecordData {
-                avatar: None,
-                banner: None,
-                created_at: None,
-                description: None,
-                display_name: None,
-                joined_via_starter_pack: None,
-                labels: None,
-                pinned_post: None,
-                pronouns: None,
-                website: None,
-            }, None)
+            (
+                RecordData {
+                    avatar: None,
+                    banner: None,
+                    created_at: None,
+                    description: None,
+                    display_name: None,
+                    joined_via_starter_pack: None,
+                    labels: None,
+                    pinned_post: None,
+                    pronouns: None,
+                    website: None,
+                },
+                None,
+            )
         }
     };
 
@@ -174,7 +192,10 @@ async fn main() -> Result<()> {
             current_record_data.avatar = Some(BlobRef::Typed(TypedBlobRef::Blob(blob)));
         }
         Err(e) => {
-            error!("Could not retrieve metadata for avatar blob CID: {}. Error: {:?}", new_avatar_cid, e);
+            error!(
+                "Could not retrieve metadata for avatar blob CID: {}. Error: {:?}",
+                new_avatar_cid, e
+            );
             return Ok(());
         }
     }
@@ -190,7 +211,10 @@ async fn main() -> Result<()> {
                     current_record_data.banner = Some(BlobRef::Typed(TypedBlobRef::Blob(blob)));
                 }
                 Err(e) => {
-                    warn!("Could not retrieve metadata for banner blob CID: {}. Error: {:?}", bcid, e);
+                    warn!(
+                        "Could not retrieve metadata for banner blob CID: {}. Error: {:?}",
+                        bcid, e
+                    );
                 }
             }
         }
@@ -198,17 +222,28 @@ async fn main() -> Result<()> {
 
     // ── Write Profile ────────────────────────────────
 
-    agent.api.com.atproto.repo.put_record(
-        atrium_api::com::atproto::repo::put_record::InputData {
-            collection: "app.bsky.actor.profile".parse().map_err(|e| anyhow!("{:?}", e))?,
-            repo: env_vars.did.parse().map_err(|e| anyhow!("{:?}", e))?,
-            rkey: "self".parse().map_err(|e| anyhow!("{:?}", e))?,
-            record: serde_json::from_value::<Unknown>(serde_json::to_value(current_record_data)?)?,
-            swap_record: swap_record_cid,
-            validate: None,
-            swap_commit: None,
-        }.into()
-    ).await?;
+    agent
+        .api
+        .com
+        .atproto
+        .repo
+        .put_record(
+            atrium_api::com::atproto::repo::put_record::InputData {
+                collection: "app.bsky.actor.profile"
+                    .parse()
+                    .map_err(|e| anyhow!("{:?}", e))?,
+                repo: env_vars.did.parse().map_err(|e| anyhow!("{:?}", e))?,
+                rkey: "self".parse().map_err(|e| anyhow!("{:?}", e))?,
+                record: serde_json::from_value::<Unknown>(serde_json::to_value(
+                    current_record_data,
+                )?)?,
+                swap_record: swap_record_cid,
+                validate: None,
+                swap_commit: None,
+            }
+            .into(),
+        )
+        .await?;
 
     info!("Profile updated successfully.");
 
